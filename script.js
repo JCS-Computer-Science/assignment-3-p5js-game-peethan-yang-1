@@ -4,13 +4,13 @@ let trail = [];
 let particles = [];
 let fruitSplatter = [];
 
-let canvasX = 1000;
-let canvasY = 800;
+
 
 let spawnTimer = 0;
 let bombTimer = 0;
 
-let fruitColours = ["blue", "green", "orange", "yellow", "brown", "purple", "olive", "lime", "teal", "aqua", "navy", "fuchsia"];
+let fruitcolors = [];
+let fruitImages = []
 
 let score = 0;
 let lives = 3;
@@ -19,7 +19,7 @@ let gameOver = false;
 
 let combo = 0;
 let comboTimer = 0;
-let comboLength = 60;
+let comboLength = 120;
 
 let comboLost = false;
 let comboLostTimer = 0;
@@ -36,21 +36,45 @@ let comboLostShakeDist = 8;
 let flashOpacity = 0;
 let flashLength = 20;
 
+let img;
+let bombImg;
+
+function preload() {
+    img = loadImage('cuttingboard nobg resize.png')
+    // image dimensions 1300x856
+
+    bombImg = loadImage('bomb.png')
+
+    fruitImages = [
+        loadImage('apple.png'),
+        loadImage('greenApple.png'),
+        loadImage('orange.png'),
+        loadImage('watermelon.png'),
+        loadImage('grapefruit.png'),
+        loadImage('coconut.png'),
+    ]
+
+
+
+}
 
 function setup () {
-    createCanvas(canvasX, canvasY);
+    createCanvas(1300, 856);
 
-    fruitX = random(1, canvasX);
-    fruitY = canvasY;
-    fruitSize = random(20, 60);
-    fruitSpeed = random(1, 5);
+    for (let i = 0; i < fruitImages.length; i++) {
+        fruitcolors[i] = getImagecolor(fruitImages[i]);
+    }
+
     setInterval(() => {
         trail.shift()
     }, 30);
 }
 
 function draw() {
-    background(100, 100, 100);
+    background(0);
+
+    imageMode(CORNER)
+    image(img, 0, 0, width, height);
 
     if (!gameOver) {
         spawnObject();
@@ -78,30 +102,30 @@ function drawGameOver() {
     textAlign(CENTER, CENTER);
 
     fill(255, 0, 0);
-    textSize(67);
-    text("GAME OVER", canvasX / 2, canvasY / 2);
-    text("FINAL SCORE: " + score, canvasX / 2, (canvasY / 2) + 70)
+    textSize(width * 0.05);
+    text("GAME OVER", width / 2, (height / 2) - 40);
+    text("FINAL SCORE: " + score, width / 2, (height / 2) + 40)
 
     
 }
 
 function scoreCounter() {
     fill(255);
-    textSize(32);
-    text("Score: " + score, 20, 40);
+    textSize(60);
+    text("Score: " + score, width * 0.009, height * 0.1);
 }
 
 function livesCounter() {
     fill(255);
-    textSize(32);
-    text("Lives: " + lives, 860, 40);
+    textSize(60);
+    text("Lives: " + lives, width * 0.8, height * 0.1);
 }
 
 function comboCounter() {
 
     if (combo >= 1) {
-        let x = 820;
-        let y = 300;
+        let x = width * 0.9;
+        let y = height * 0.35;
 
         if (comboShakeTime > 0) {
             x += random(-comboShakeDist, comboShakeDist);
@@ -109,12 +133,12 @@ function comboCounter() {
             comboShakeTime -= 1;
         }
 
-        x = constrain(x, 0, canvasX - 100);
-        y = constrain(y, 0, canvasY - 150);
+        x = constrain(x, 0, width - 100);
+        y = constrain(y, 0, height - 150);
 
 
         fill(255);
-        textSize(32);
+        textSize(33);
         textAlign(CENTER, TOP);
         text("COMBO: " + combo, x, y);
     }
@@ -124,7 +148,7 @@ function comboCounter() {
 function bombFlash() {
     if (flashOpacity > 0) {
         fill(255, 255, 255, flashOpacity);
-        rect(0, 0, canvasX, canvasY);
+        rect(0, 0, width, height);
         flashOpacity -= 255 / flashLength;
         if (flashOpacity < 0) {
             flashOpacity = 0;
@@ -134,8 +158,8 @@ function bombFlash() {
 
 function comboLoss() {
     if (comboLostTimer > 0) {
-        let x = 820;
-        let y = 300;
+        let x = width * 0.9;
+        let y = height * 0.35;
 
         if(comboLostShakeTime > 0) {
             x += random(-comboLostShakeDist, comboLostShakeDist);
@@ -145,7 +169,7 @@ function comboLoss() {
 
 
         fill(255, 0, 0);
-        textSize(28);
+        textSize(33);
         textAlign(CENTER, TOP);
         text("COMBO LOST!", x, y);
 
@@ -157,19 +181,50 @@ function comboLoss() {
     textAlign(LEFT, BASELINE);
 }
 
+function getImagecolor(img) {
+    
+    let gfx = createGraphics(img.width, img.height);
+    gfx.image(img, 0, 0);
+    gfx.loadPixels();
+
+    let r = 0;
+    let g = 0;
+    let b = 0;
+
+    let count = 0;
+
+    for (let i = 0; i < gfx.pixels.length; i += 40) {
+        r += gfx.pixels[i];
+        g += gfx.pixels[i+1];
+        b += gfx.pixels[i+2];
+
+        count++
+    }
+
+    gfx.remove();
+
+    return color(r/count, g/count, b/count);
+}
+
 function spawnObject() {
 
     spawnTimer = spawnTimer + 1;
     bombTimer = bombTimer + 1;
 
     if (spawnTimer > 25) {
+
+        let index = floor(random(fruitImages.length));
+
         let fruit = {
-            x: random(100, canvasX - 100),
-            y: canvasY,
+            x: random(width * 0.1, width * 0.9),
+            y: height,
             size: random(70, 105),
             vx: random(-10, 10),
             vy: random(-20, -15),
-            colour: random(fruitColours)
+            
+            img: fruitImages[index],
+
+            color: fruitcolors[index]
         };
     
         fruits.push(fruit)
@@ -179,12 +234,12 @@ function spawnObject() {
 
     if (bombTimer > 80) {
         let bomb = {
-            x: random(100, canvasX - 100),
-            y: canvasY,
+            x: random(100, width - 100),
+            y: height,
             size: random(70, 105),
             vx: random(-10, 10),
             vy: random(-20, -15),
-            colour: "red"
+            img: bombImg
         };
 
         bombs.push(bomb);
@@ -200,7 +255,7 @@ function updateParticles() {
         p.vy += 0.2;
         p.life -= 1;
 
-        fill(p.colour);
+        fill(p.color);
         noStroke();
         circle(p.x, p.y, p.size);
 
@@ -210,22 +265,31 @@ function updateParticles() {
     }
 }
 
-function addSplat(x, y, size, colour) {
+function addSplat(x, y, size, color) {
     let splat = {
         x: x,  
         y: y,
         size: size,
-        colour: colour
+        color: color,
+        life: 30,
+        maxLife: 30
     }
 
     fruitSplatter.push(splat);
 }
 
 function drawSplat() {
-    for (const splat of fruitSplatter) {
-        console.log(splat.colour)
-        fill((splat.colour));
-        ellipse(splat.x, splat.y, splat.size, splat.size)
+    for (let i = fruitSplatter.length - 1; i >= 0; i--) {
+        let s = fruitSplatter[i];
+
+        fill(red(s.color), green(s.color), blue(s.color), 255 * (s.life / s.maxLife));
+        ellipse(s.x, s.y, s.size);
+
+        s.life--;
+
+        if (s.life <= 0) {
+            fruitSplatter.splice(i, 1);
+        }
     }
 }
 
@@ -239,10 +303,17 @@ function updateGame() {
         fruits[i].x += fruits[i].vx;
         fruits[i].y += fruits[i].vy;
 
-        fill(fruits[i].colour);
-        circle(fruits[i].x, fruits[i].y, fruits[i].size);
 
-        if (fruits[i].y > canvasY + 50) {
+        push();
+        imageMode(CENTER);
+        angleMode(DEGREES)
+        translate(fruits[i].x, fruits[i].y)
+        rotate(millis()/5)
+        image(fruits[i].img, 0, 0, fruits[i].size, fruits[i].size); 
+
+        pop();
+
+        if (fruits[i].y > height + 50) {
             fruits.splice(i, 1);
             
         }
@@ -254,10 +325,17 @@ function updateGame() {
         bombs[i].x += bombs[i].vx;
         bombs[i].y += bombs[i].vy;
 
-        fill(bombs[i].colour);
-        circle(bombs[i].x, bombs[i].y, bombs[i].size);
+        
+        push();
+        imageMode(CENTER);
+        angleMode(DEGREES);
+        translate(bombs[i].x, bombs[i].y);
+        rotate(millis()/5);
+        image(bombs[i].img, 0, 0, bombs[i].size, bombs[i].size);
 
-        if (bombs[i].y > canvasY + 50) {
+        pop();
+
+        if (bombs[i].y > height + 50) {
             bombs.splice(i, 1);
             
         }
@@ -289,7 +367,7 @@ function mouseSlice() {
         if (d < fruits[i].size / 2) {
             let slicedFruit = fruits.splice(i, 1)[0];
             console.log(slicedFruit)
-            addSplat(slicedFruit.x, slicedFruit.y, slicedFruit.size, slicedFruit.colour);
+            addSplat(slicedFruit.x, slicedFruit.y, slicedFruit.size, slicedFruit.color);
 
             for (let j = 0; j < 15; j++) {
                 particles.push({
@@ -298,7 +376,7 @@ function mouseSlice() {
                     vx: random(-5, 5),
                     vy: random(-5, 5),
                     size: random(5, 12),
-                    colour: slicedFruit.colour,
+                    color: slicedFruit.color,
                     life: 60
                 })
             }
@@ -310,7 +388,7 @@ function mouseSlice() {
 
             comboShakeTime = comboShakeLength;
 
-            score += combo;
+            score += combo * 2;
 
             comboLost = false;
             comboLostTimer = 0;
