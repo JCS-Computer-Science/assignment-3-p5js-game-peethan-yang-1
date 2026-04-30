@@ -39,6 +39,106 @@ let flashLength = 20;
 let img;
 let bombImg;
 
+class GameObject {
+    constructor(x, y, size, vx, vy, img) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.vx = vx;
+        this.vy = vy;
+        this.img = img;
+    }
+
+    update(gravity) {
+        this.vy += gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+    }
+
+    draw() {
+        push();
+        imageMode(CENTER);
+        translate(this.x, this.y);
+        rotate(millis()/300);
+        image(this.img, 0, 0, this.size, this.size);
+        pop();
+    }
+
+    isOffScreen() {
+        return this.y > height + 50;
+    }
+}
+
+class Fruit extends GameObject {
+    constructor(x, y, size, vx, vy, img, color) {
+        super(x, y, size, vx, vy, img);
+        this.color = color;
+    }
+
+    slice() {
+        addSplat(this.x, this.y, this.size, this.color);
+
+        for (let j = 0; j < 15; j++) {
+            particles.push(new Particle(
+                this.x, 
+                this.y,
+                random(-5, 5),
+                random(-5, 5),
+                random(5, 12),
+                this.color
+            ))
+        }
+    }
+}
+
+class Bomb extends GameObject {
+    constructor (x, y, size, vx, vy, img) {
+        super(x, y, size, vx, vy, img);
+    }
+
+    bombHit() {
+        lives -=1;
+
+        combo = 0;
+        comboTimer = 0;
+
+        comboLost = true;
+        comboLostTimer = comboLostTextDuration;
+        comboLostShakeTime = comboLostShakeLength;
+        
+        flashOpacity = 255;
+    }
+}
+
+class Particle {
+    constructor(x, y, vx, vy, size, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.size = size;
+        this.color = color;
+        this.life = 60;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.2;
+        this.life--;
+    }
+
+    ifDead() {
+        return this.life <= 0;
+    }
+
+    draw() {
+        fill(this.color);
+        noStroke();
+        circle(this.x, this.y, this.size);
+    }
+}
+
 function preload() {
     img = loadImage('cuttingboard nobg resize.png')
     // image dimensions 1300x856
@@ -215,51 +315,44 @@ function spawnObject() {
 
         let index = floor(random(fruitImages.length));
 
-        let fruit = {
-            x: random(width * 0.1, width * 0.9),
-            y: height,
-            size: random(70, 105),
-            vx: random(-10, 10),
-            vy: random(-20, -15),
-            
-            img: fruitImages[index],
-
-            color: fruitcolors[index]
-        };
-    
-        fruits.push(fruit)
+        fruits.push(new Fruit(
+            random(width * 0.1, width * 0.9),
+            height,
+            random(70, 105),
+            random(-10, 10),
+            random(-20, -15),
+            fruitImages[index],
+            fruitcolors[index]
+        ));
 
         spawnTimer = 0;
     }
 
     if (bombTimer > 80) {
-        let bomb = {
-            x: random(100, width - 100),
-            y: height,
-            size: random(70, 105),
-            vx: random(-10, 10),
-            vy: random(-20, -15),
-            img: bombImg
-        };
+        
+        bombs.push(new Bomb(
+            random(100, width - 100),
+            height,
+            random(70, 105),
+            random(-10, 10),
+            random(-20, -15),
+            bombImg
+        ));
 
-        bombs.push(bomb);
+
         bombTimer = 0;
     } 
 }
 
 function updateParticles() {
     for (let i = particles.length - 1; i >= 0; i--) {
+        
         let p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.2;
-        p.life -= 1;
 
-        fill(p.color);
-        noStroke();
-        circle(p.x, p.y, p.size);
+        p.update();
+        p.draw();
 
-        if (p.life <= 0) {
+        if (p.ifDead()) {
             particles.splice(i, 1);
         }
     }
@@ -298,48 +391,27 @@ function updateGame() {
     let gravity = 0.5;
     
     for (let i = fruits.length - 1; i >= 0; i--) {
-        fruits[i].vy += gravity;
         
-        fruits[i].x += fruits[i].vx;
-        fruits[i].y += fruits[i].vy;
+        let f = fruits[i];
 
+        f.update(gravity);
+        f.draw();
 
-        push();
-        imageMode(CENTER);
-        angleMode(DEGREES)
-        translate(fruits[i].x, fruits[i].y)
-        rotate(millis()/5)
-        image(fruits[i].img, 0, 0, fruits[i].size, fruits[i].size); 
-
-        pop();
-
-        if (fruits[i].y > height + 50) {
+        if (f.isOffScreen()) {
             fruits.splice(i, 1);
-            
         }
     }
 
     for (let i = bombs.length - 1; i >= 0; i--) {
-        bombs[i].vy += gravity;
-
-        bombs[i].x += bombs[i].vx;
-        bombs[i].y += bombs[i].vy;
-
         
-        push();
-        imageMode(CENTER);
-        angleMode(DEGREES);
-        translate(bombs[i].x, bombs[i].y);
-        rotate(millis()/5);
-        image(bombs[i].img, 0, 0, bombs[i].size, bombs[i].size);
+        let b = bombs[i];
 
-        pop();
+        b.update(gravity);
+        b.draw();
 
-        if (bombs[i].y > height + 50) {
+        if (b.isOffScreen()) {
             bombs.splice(i, 1);
-            
         }
-
     }
 
     if (comboTimer > 0) {
@@ -365,22 +437,8 @@ function mouseSlice() {
         let d = dist(mouseX, mouseY, fruits[i].x, fruits[i].y);
 
         if (d < fruits[i].size / 2) {
-            let slicedFruit = fruits.splice(i, 1)[0];
-            console.log(slicedFruit)
-            addSplat(slicedFruit.x, slicedFruit.y, slicedFruit.size, slicedFruit.color);
-
-            for (let j = 0; j < 15; j++) {
-                particles.push({
-                    x: slicedFruit.x,
-                    y: slicedFruit.y,
-                    vx: random(-5, 5),
-                    vy: random(-5, 5),
-                    size: random(5, 12),
-                    color: slicedFruit.color,
-                    life: 60
-                })
-            }
-
+            let f = fruits.splice(i,1)[0];
+            f.slice();
 
 
             combo += 1;
@@ -392,27 +450,18 @@ function mouseSlice() {
 
             comboLost = false;
             comboLostTimer = 0;
+            } 
         }
-    }
+    
 
     for (let i = bombs.length - 1; i >= 0; i--) {
         let d = dist(mouseX, mouseY, bombs[i].x, bombs[i].y);
 
         if (d < bombs[i].size / 2) {
-            bombs.splice(i, 1);
-            lives -= 1;
-
-            combo = 0;
-            comboTimer = 0;
-            comboLost = true;
-            comboLostTimer = comboLostTextDuration;
-
-            comboLostShakeTime = comboLostShakeLength;
-
-            flashOpacity = 255;
+            let b = bombs.splice(i, 1)[0];
+            b.bombHit();
         }
     }
-
 }
 
 function mouseTrail() {
