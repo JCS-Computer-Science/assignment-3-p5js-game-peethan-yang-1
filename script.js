@@ -4,8 +4,6 @@ let trail = [];
 let particles = [];
 let fruitSplatter = [];
 
-
-
 let spawnTimer = 0;
 let bombTimer = 0;
 
@@ -38,6 +36,8 @@ let flashLength = 20;
 
 let img;
 let bombImg;
+
+let gameState = "menu"
 
 class GameObject {
     constructor(x, y, size, vx, vy, img) {
@@ -171,29 +171,54 @@ function setup () {
 }
 
 function draw() {
+    if (gameState === "menu") {
+        drawMenu();
+
+    }
+
+    if (gameState === "playing") {
+        drawGame();
+    }
+
+    if (gameState === "gameover") {
+        drawGameOver();
+    }
+}
+
+function drawGame() {
     background(0);
 
     imageMode(CORNER)
     image(img, 0, 0, width, height);
 
-    if (!gameOver) {
-        spawnObject();
-        updateGame();
+    spawnObject();
+    updateGame();
 
-        scoreCounter();
-        livesCounter();
-        comboCounter();
-        bombFlash();
+    scoreCounter();
+    livesCounter();
+    comboCounter();
+    bombFlash();
 
-        comboLoss();
+    comboLoss();
 
-        updateParticles();
-        mouseTrail();
+    updateParticles();
+    mouseTrail();
 
-        drawSplat();
-    } else {
-        drawGameOver();
-    }
+    drawSplat();
+}
+
+function drawMenu() {
+    background(30);
+
+    fill(255);
+    textAlign(CENTER, CENTER);
+
+    textSize(80);
+    text("Fruit Ninja", width/2, height/3);
+
+    textSize(40);
+    text("Click to Start", width/2, height/2)
+    
 }
 
 function drawGameOver() {
@@ -202,12 +227,35 @@ function drawGameOver() {
     textAlign(CENTER, CENTER);
 
     fill(255, 0, 0);
-    textSize(width * 0.05);
-    text("GAME OVER", width / 2, (height / 2) - 40);
-    text("FINAL SCORE: " + score, width / 2, (height / 2) + 40)
+    textSize(80);
+    text("GAME OVER", width / 2, height / 2 - 50);
 
-    
+    fill(255);
+    textSize(40);
+    text("FINAL SCORE: " + score, width / 2, height / 2 + 20);
+
+    text("Click to Restart", width / 2, height / 2 + 100);
 }
+
+function startGame() {
+    fruits = [];
+    bombs = [];
+    particles = [];
+    fruitSplatter = [];
+    trail = [];
+
+    score = 0;
+    lives = 3;
+
+    combo = 0;
+    comboTimer = 0;
+
+    spawnTimer = 0;
+    bombTimer = 0;
+
+    gameState = "playing";
+}
+
 
 function scoreCounter() {
     fill(255);
@@ -427,7 +475,7 @@ function updateGame() {
     }
 
     if (lives <= 0) {
-        gameOver = true;
+        gameState = "gameover";
     }
 
 }
@@ -485,6 +533,16 @@ function mouseMoved() {
 
     if (trail.length > 10) {
         trail.shift();
+    }
+}
+
+function mousePressed() {
+    if (gameState === "menu") {
+        startGame();
+    }
+
+    else if (gameState === "gameover") {
+        startGame();
     }
 }
 
